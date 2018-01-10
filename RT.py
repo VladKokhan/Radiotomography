@@ -1,123 +1,188 @@
 import numpy as np
 import cv2
 from cmath import *
+from math import radians
 import matplotlib.pyplot as plt
+from minimg import MinImg, QO_SUBPIXEL
 
-def object_RT(n):
-    w = h = 101
-    if n == 5:
-        w = 151
+def dielecric_loss(P0, eps2rel, sigma2, parallel=True):
+    f = 2.4e9 # frequency
+    omega = 2 * pi * f # circular frequency
+    eps1 = 8.85e-12 # the first media permittivity
+    myu1 = 4 * pi * 1e-7 # nonmagnetic material permeability
+    myu2 = 4 * pi * 1e-7
+    sigma1 = 0 # the first media conductivity
+    theta_i = 0
+
+    eps2 = eps2rel * 8.85e-12 # the second media permittivity
+    gamma1 = sqrt(1j * omega * myu1 * (sigma1 + 1j * omega * eps1)) # gamma = alpha + j * betta
+    gamma2 = sqrt(1j * omega * myu2 * (sigma2 + 1j * omega * eps2))
+    if theta_i >= pi / 4 and theta_i < pi / 2:
+        theta_i = pi/2 - theta_i
+    if theta_i >= pi / 2 and theta_i < 3 * pi / 4:
+        theta_i = theta_i - pi/2
+    if theta_i >= 3 * pi / 4:
+        theta_i = pi - theta_i
+    theta_t = asin(sin(theta_i) * sqrt(eps1 * myu1 / (eps2 * myu2))) # angle wave transmited in second media
+    etta1 = -omega * myu1 / (1j * gamma1) # the first media intrinsic impedance
+    etta2 = -omega * myu2 / (1j * gamma2) # the second media intrisic impedance
+    betta2 = omega * sqrt(myu2 * eps2 / 2 * (sqrt(1 + sigma2**2 / (eps2**2 * omega**2)) + 1)) # the second media phase constant (wave number)
+    alpha2 = omega * sqrt(myu2 * eps2 / 2 * (sqrt(1 + sigma2**2 / (eps2**2 * omega**2)) - 1)) # attenuation constant
+
+    if parallel == True:
+        Z1 = etta1 * cos(theta_i) # the first media characteristic impedance
+        Z2 = etta2 * cos(theta_t) # the second media characteristic impedance
+    else:
+        Z1 = etta1 / cos(theta_i) # the first media characteristic impedance
+        Z2 = etta2 / cos(theta_t) # the second media characteristic impedance
+    Z3 = Z1 # the third media chracteristic impedance
+                
+    d0 = 0.1
+    de = d0 / cos(theta_t)
+    Zin = Z2 * (Z3 +  Z2 * tanh(gamma2 * de)) / (Z2 + Z3 * tanh(gamma2 * de))
+    G = (Zin - Z1) / (Zin + Z1) 
+    PR = P0 * abs(G)**2
+    Pt = (P0 - PR) * exp(-2 * alpha2 * de)
+    if Pt ==0:
+        Lm = 10*log10(P0)
+    else:
+        Lm =  10*log10(P0/Pt)
+    return(Lm.real)
+
+def element_loss(P0):
+    l1 = dielecric_loss(P0, 2, 0.0047) #wood
+    l2 = dielecric_loss(P0, 2.58, 0.0217) #chipboard
+    l3 = dielecric_loss(P0, 3.75, 0.038) #brick
+    l4 = dielecric_loss(P0, 5,31, 0.0326) #concrete
+    l5 = dielecric_loss(P0, 1, 59.5e6) #copper
+    return(l1, l2, l3, l4, l5)
+
+def object_RT(P0, n):
+    w = 161
+    h = 161
     obj = np.zeros((h, w), np.uint8)
 
+    l1 = dielecric_loss(P0, 2, 0.0047, parallel=True) #wood
+    l2 = dielecric_loss(P0, 2.58, 0.0217, parallel=True) #chipboard
+    l3 = dielecric_loss(P0, 3.75, 0.038, parallel=True) #brick
+    l4 = dielecric_loss(P0, 5.31, 0.0326, parallel=True) #concrete
+    l5 = dielecric_loss(P0, 1, 59.5e6, parallel=True) #copper
+
     if n == 1:
-        cv2.rectangle(obj, (0,0), (100,100), 150, 2)
-        cv2.rectangle(obj, (40,45), (60,55), 50, 1)
+        cv2.rectangle(obj, (30,30), (130,130), l3, 1)
+        cv2.rectangle(obj, (31,31), (129,129), l3, 1)
+        cv2.rectangle(obj, (70,75), (90,85), l1, 1)
     
     if n == 2:
-        cv2.circle(obj,(50,50), 50, (150), 2)
-        cv2.rectangle(obj, (71,29), (76,34), 50, -1)
+        cv2.circle(obj,(80,80), 50, (l3), 2)
+        cv2.rectangle(obj, (101,59), (106,64), l1, -1)
 
     if n == 3:
-        cv2.rectangle(obj, (0,0), (100,100), 150, 3)
-        cv2.rectangle(obj, (17,16), (17,35), 250, -1)
-        cv2.circle(obj,(12,88), 3, (200), -1)
-        cv2.rectangle(obj, (74,69), (87,82), 50, -1)
-        cv2.rectangle(obj, (80,5), (94,24), 50, 1)
-        cv2.rectangle(obj, (86,16), (93,23), 100, -1)
+        cv2.rectangle(obj, (30,30), (130,130), l3, 1)
+        cv2.rectangle(obj, (31,31), (129,129), l3, 1)
+        cv2.rectangle(obj, (32,32), (128,128), l3, 1)
+        cv2.rectangle(obj, (33,33), (127,127), l3, 1)
+
+        cv2.rectangle(obj, (47,46), (47,65), l5, -1)
+        cv2.circle(obj,(44,116), 3, (l4), -1)
+        cv2.rectangle(obj, (104,99), (117,112), l1, -1)
+        cv2.rectangle(obj, (110,36), (124,55), l1, 1)
+        cv2.rectangle(obj, (116,47), (123,54), l2, -1)
 
     if n == 4:
-        cv2.rectangle(obj, (0,0), (100,100), 150, 2)
-        cv2.rectangle(obj, (17,21), (17,40), 250, -1)
-        cv2.circle(obj,(12,88), 3, (200), -1)
-        cv2.rectangle(obj, (50,2), (50,98), 150, -1)
-        cv2.rectangle(obj, (80,5), (94,24), 50, 1)
-        cv2.rectangle(obj, (86,16), (93,23), 100, -1)
+        cv2.rectangle(obj, (30,30), (130,130), l3, 1)
+        cv2.rectangle(obj, (31,31), (129,129), l3, 1)
+        cv2.rectangle(obj, (32,32), (128,128), l3, 1)
+        cv2.rectangle(obj, (33,33), (127,127), l3, 1)
+
+        cv2.rectangle(obj, (47,61), (47,70), l5, -1)
+        cv2.circle(obj,(44,116), 3, (l4), -1)
+        cv2.rectangle(obj, (80,32), (80,128), l3, -1)
+        cv2.rectangle(obj, (110,35), (124,54), l1, 1)
+        cv2.rectangle(obj, (116,47), (123,54), l2, -1)
 
     if n == 5:
-        cv2.ellipse(obj, (75,50), (75,50), 0, 0, 360, 150, 2)
-        cv2.circle(obj,(35,30), 3, (200), -1)
-        cv2.rectangle(obj, (105,25), (119,39), 50, -1)
-        cv2.rectangle(obj, (80,55), (80,74), 250, -1)
+        cv2.ellipse(obj, (80,80), (75,50), 0, 0, 360, l3, 2)
+        cv2.circle(obj,(40,60), 3, (l4), -1)
+        cv2.rectangle(obj, (110,55), (124,69), l1, -1)
+        cv2.rectangle(obj, (85,85), (85,104), l5, -1)
     
+    if n ==6:
+        obj = np.zeros((15, 15), np.uint8)
+        cv2.circle(obj, (6,7), 2, (l5), -1)
+
     return(obj)
 
-def rt_beam(ang, h, w):
+def rt_beam(delta, h, w):
     x1 = 0
     y1 = 0
-    x2 = w 
+    x2 = 0 
     y2 = h
-    
-    x = np.array(())
-    y = np.array(())
 
     beam = np.zeros((h, w), np.uint8)
-    new_beam = np.zeros((h, w), np.uint8)
-    pts = np.array([[x1,y1],[x2,y2]], np.int32)
-    cv2.polylines(beam,[pts],True,(255))
-    rotation_matrix = cv2.getRotationMatrix2D((w/2, h/2), ang, 1)
-    beam = cv2.warpAffine(beam, rotation_matrix, (w, h))
-    '''
-    for c in range(h):
-        for r in range(w):
-            if beam[c, r] > 80:
-                x = np.append(x, r)
-                y = np.append(y, c)
+    
+    for step in range(0, w, delta):
+        pts = np.array([[x1 + step, y1],[x2 + step, y2]], np.int32)
+        cv2.polylines(beam,[pts],True,(255))
 
-    if ang <= 90:
-        new_pts = np.array([[x1, y[0]], [x2, y[-1]]], np.int32)
-    elif ang > 90 and ang < 180:
-        new_pts = np.array([[x[0], y1], [x[-1], y2]], np.int32)
-    cv2.polylines(new_beam,[new_pts],True,(255))
     '''
+    beam = np.zeros((h, 3), np.uint8)
+    for step in range(0, w, delta):
+        cv2.ellipse(beam, (1, int(h/2)), (1, int(h/2)), 0, 0, 360, 255, -1)
+    '''
+    # rotation_matrix = cv2.getRotationMatrix2D((w/2, h/2), ang, 1)
+    # beam = cv2.warpAffine(beam, rotation_matrix, (w, h), flags=cv2.INTER_NEAREST)
+    #from minimg import MinImg, QO_SUBPIXEL
+    #img = MinImg.fromarray(beam)
+    #img.rotate(radians(ang), out=img, quality=QO_SUBPIXEL)
+    #print(img)
     return(beam)
 
-def projection(obj, delta_ang, ellips=False):
+
+def projection(obj, delta_ang, object_number, ellips=False, delta=0):
+    h, w = obj.shape[:2]
     if ellips == False:
-        h, w = obj.shape[:2]
-        beam_vector = np.array((), np.uint8)
-        range_vector = np.array(())
-        x = np.array(())
-        y = np.array(())
+        beam = rt_beam(1, h, w)
+        projection_matrix = np.zeros((int(180/delta_ang), w))
+        beam_vector = np.zeros(h)
+        ang = 0
+        for n in range(0, 180, delta_ang):
+            new_obj = object_RT(P0, object_number)
+            img = MinImg.fromarray(new_obj)
+            img.rotate(radians(n), out=img, quality=QO_SUBPIXEL)
 
-        n = range(0, 180, delta_ang)
-        j = 0
-        k = 1
-        print(len(n))
-        matrix_p = np.zeros((len(n), 210), np.uint8)        
-        new_obj = obj.copy()
-        for ang in n:
-            beam = rt_beam(ang, h, w)
-            beam_vector = np.array((), np.uint8)
-            
-            if ang > 45 and ang <= 225:
-                beam = np.fliplr(beam)
-                obj = np.fliplr(obj)
-            
-            for c in range(h):
-                for r in range(w):
-                    if beam[c, r] > 50:
-                        beam_vector = np.append(beam_vector, obj[c,r])
-                        x = np.append(x, r)
-                        y = np.append(y, c)
-            '''
-            if len(beam_vector) > k:
-                k = len(beam_vector)
-                matrix_p.resize((len(n), k), refcheck=False)
-            '''
-            
-            if ang > 45 and ang <= 225:
-                beam_vector = beam_vector[::-1]
-                beam = np.fliplr(beam)
-                obj = np.fliplr(obj)
-            
-            for i in range(len(beam_vector)):
-                matrix_p[j, i] = beam_vector[i]
-            new_obj = cv2.add(new_obj, beam)
-            j += 1
-            range_vector = np.append(range_vector,sqrt((x[0]-x[-1])**2 + (y[0]-y[-1])**2))
-    return (new_obj, matrix_p, range_vector)
+            for c in range(w):
+                for r in range(h):
+                    if beam[r, c] > 0:
+                        beam_vector[r] = new_obj[r,c]
+                projection_matrix[n, c] = np.sum(beam_vector)
 
-def TP_v(range_vector, Pin):
+    
+    elif ellips == True:
+        beam_vector = np.zeros(h*3)
+        projection_matrix = np.zeros((int(180/delta_ang), w))
+        beam = np.zeros((h, 3))
+        cv2.ellipse(beam, (1, int(h/2)), (1, int(h/2)), 0, 0, 360, 255, -1)
+        sum_beam = np.sum(beam, axis=1)
+        for c in range(3):
+            beam[:,c] = beam[:,c] / sum_beam
+        for n in range(0, 180, delta_ang):
+            new_obj = object_RT(P0, object_number)
+            img = MinImg.fromarray(new_obj)
+            img.rotate(radians(n), out=img, quality=QO_SUBPIXEL)
+
+            for step in range(0, w, delta):
+                for c in range(3):
+                    for r in range(h):
+                        if beam[r, c] > 0:
+                            if c+step < 161:
+                                beam_vector[r + h * c] = new_obj[r,c + step] * beam[r,c]
+                    
+                projection_matrix[n, step] = np.sum(beam_vector)
+
+    return (projection_matrix, beam)
+
+def TP_v(beam_length, P0):
     vector_tp_v = np.array(())
 
     f = 2.4e9 # frequency
@@ -126,99 +191,117 @@ def TP_v(range_vector, Pin):
     D = 41250 / (theta**2)
     eff = 0.95 # antenna efficiency
     lmbd = c / f # mave length
-    for v in range(len(range_vector)):
-        Pt = ( Pin * eff**2 * D**2 * lmbd**2 / (4 * pi * range_vector[v] * 0.1)**2)
-        vector_tp_v = np.append(vector_tp_v, Pt)
-    return(vector_tp_v)
+    Pt = ( P0 * eff**2 * D**2 * lmbd**2 / (4 * pi * beam_length * 0.1)**2)
+    Lv =  10*log10(P0/Pt)
+    return(Lv.real)
 
-def TP_d(matrix_p, parallel=True):
-    f = 2.4e9 # frequency
-    omega = 2 * pi * f # circular frequency
-    eps1 = 8.85e-12 # the first media permittivity
-    myu1 = 4 * pi * 1e-7 # nonmagnetic material permeability
-    myu2 = 4 * pi * 1e-7
-    sigma1 = 0 # the first media conductivity
-    theta_i = 0 # incident angle
-    h, w = matrix_p.shape[:2]
-    matrix_d = np.zeros((h, w), complex)
-    for dh in range(h):      
-        Pin = 1000 # power
-        for dw in range(w):
-            if matrix_p[dh,dw] == 50:
-                eps2rel = 2
-                sigma2 = 0.0047
-            if matrix_p[dh,dw] == 100:
-                eps2rel = 2.58
-                sigma2 = 0.0217
-            if matrix_p[dh,dw] == 150:
-                eps2rel = 3.75
-                sigma2 = 0.038
-            if matrix_p[dh,dw] == 200:
-                eps2rel = 5.31
-                sigma2 = 0.0326
-            if matrix_p[dh,dw] == 250:
-                eps2rel = 1
-                sigma2 = 59.5e6
 
-            if matrix_p[dh,dw] == 0:
-                Pin=Pin
-                matrix_d[dh,dw] = Pin
-            else:
-                eps2 = eps2rel * 8.85e-12 # the second media permittivity
-                gamma1 = sqrt(1j * omega * myu1 * (sigma1 + 1j * omega * eps1)) # gamma = alpha + j * betta
-                gamma2 = sqrt(1j * omega * myu2 * (sigma2 + 1j * omega * eps2))
-                theta_t = asin(sin(theta_i) * sqrt(eps1 * myu1 / (eps2 * myu2))) # angle wave transmited in second media
-                etta1 = -omega * myu1 / (1j * gamma1) # the first media intrinsic impedance
-                etta2 = -omega * myu2 / (1j * gamma2) # the second media intrisic impedance
-                betta2 = omega * sqrt(myu2 * eps2 / 2 * (sqrt(1 + sigma2**2 / (eps2**2 * omega**2)) + 1)) # the second media phase constant (wave number)
-                alpha2 = omega * sqrt(myu2 * eps2 / 2 * (sqrt(1 + sigma2**2 / (eps2**2 * omega**2)) - 1)) # attenuation constant
+def TP_sum(P0, sinogram, obj):
+    beam_length, w = obj.shape[:2]
+    range_loss = TP_v(beam_length, P0)
+    sum_sinorgam = sinogram + range_loss
+    
+    return(sum_sinorgam)
 
-                if parallel == True:
-                    Z1 = etta1 * cos(theta_i) # the first media characteristic impedance
-                    Z2 = etta2 * cos(theta_t) # the second media characteristic impedance
-                else:
-                    Z1 = etta1 / cos(theta_i) # the first media characteristic impedance
-                    Z2 = etta2 / cos(theta_t) # the second media characteristic impedance
-                Z3 = Z1 # the third media chracteristic impedance
+def weigthing_matrix(sinogram, obj, ellips=False):
+    a, w = sinogram.shape[:2]
+    h, w = obj.shape[:2]
+    matrix_w = np.zeros((a*w , h*w))
+    if ellips == False:
+        for c in range(w):
+            for angle in range(a):
                 
-                d0 = 0.1
-                de = d0 / cos(theta_t)
-                Zin = Z2 * (Z3 +  Z2 * tanh(gamma2 * de)) / (Z2 + Z3 * tanh(gamma2 * de))
-                G = (Zin - Z1) / (Zin + Z1) 
-                PR = Pin * abs(G)**2
-                Pt = (Pin - PR) * exp(-2 * alpha2 * de)
+                beam = np.zeros((h, w), np.single)
+                beam[:,0 + c] = 1
+                img = MinImg.fromarray(beam)
+                img.rotate(radians(angle), out=img, quality=QO_SUBPIXEL)
+                matrix_w[(c+angle*w), :] = beam.flatten()
+        return(matrix_w)
 
-                Pin = Pt
-                matrix_d[dh,dw] = Pin
-    return(matrix_d.real)
+def gradient_descent(matrix_w, sinogram, n):
+    a, w = sinogram.shape[:2]
+    h = w
+    matrix_w = np.flip(matrix_w,0)
+    x_matrix = np.zeros((h,w))
+    x = x_matrix.flatten()
+    
+    grad = lambda x: 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten())
 
-def TP_sum(matrix_d, vector_tp_v, Pin):
-    h, w = matrix_d.shape[:2]
-    vector_d = np.zeros(h)
-    for c in range(h):
-        vector_d[c] = matrix_d[c, -1] * vector_tp_v[c] / Pin
-    return(vector_d)
+    for t in range(n):
+        x = x - 1*grad(x)
+    
+    return(np.reshape(x, (h,w)))
+
+def steepest_gradient_descent(matrix_w, sinogram, n):
+    a, w = sinogram.shape[:2]
+    h = w
+    matrix_w = np.flip(matrix_w,0)
+    x_matrix = np.zeros((h,w))
+    x = x_matrix.flatten()
+    eps = 0.0001
+    grad = lambda x: 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten())
+    #previous_step_size = np.sum(x, axis=0)
+    lmbd = 0.1
+    #while previous_step_size > eps:
+    for t in range(n):
+        prev_x = x
+        x = prev_x - lmbd*grad(prev_x)
+        #previous_step_size = np.sum(abs(x - prev_x), axis=0)
+        #lmbd = np.argmin(x - lmbd * grad)
+    
+    return(np.reshape(x, (h,w)))
 
 if __name__ == "__main__":
-    Pin = 1000
-    obj = object_RT(3)
-    cv2.namedWindow('image1', cv2.WINDOW_NORMAL)
-    cv2.imshow("image1", obj)
     
-    obj2, matrix_p, range_vector = projection(obj, 5)
-    cv2.namedWindow('image2', cv2.WINDOW_NORMAL)
-    cv2.imshow("image2", obj2)
-    cv2.namedWindow('image3', cv2.WINDOW_NORMAL)
-    cv2.imshow("image3", matrix_p)
- 
-    tp_v = TP_v(range_vector, Pin)
-    matrix_d = TP_d(matrix_p)
-    vector_TP = TP_sum(matrix_d, tp_v, Pin)
-    print(vector_TP)
+    P0 = 1000
+    object_number = 6
+    obj = object_RT(P0, object_number)
+    #fig1 = plt.figure(1)
+    plt.imshow(obj, vmax=5, cmap='gray')
+    
+    #beam = rt_beam(5, 151, 151)
+    #cv2.namedWindow('image3', cv2.WINDOW_NORMAL)
+    #cv2.imshow("image3", beam)
 
-    fig1 = plt.figure(1)
-    plt.imshow(matrix_d, vmin=0, vmax=500)
+    sinogram, beam = projection(obj, 1, object_number, ellips=False, delta=1)
+    
+    sum_sinogram = TP_sum(P0, sinogram, obj,)
+    '''
+    fig2 = plt.figure(2)
+    plt.imshow(sum_sinogram, cmap='gray')
+    plt.colorbar()
+    plt.ylabel('Angle', fontsize=20)
+    plt.xlabel('Receiver element', fontsize=20)
+    '''
+
+    w_matrix = weigthing_matrix(sinogram, obj, ellips=False)
+    '''
+    fig4 = plt.figure(4)
+    plt.imshow(w_matrix, cmap='gray')
+    '''
+    
+    img1 = gradient_descent(w_matrix,  sum_sinogram, 1)
+    fig5 = plt.figure(5)    
+    plt.imshow(img1, cmap='gray')
+
+    img2 = gradient_descent(w_matrix,  sum_sinogram, 2)
+    fig6 = plt.figure(6)    
+    plt.imshow(img2, cmap='gray')
+
+    img3 = gradient_descent(w_matrix,  sum_sinogram, 3)
+    fig7 = plt.figure(7)    
+    plt.imshow(img3, cmap='gray')
+
+    img4 = gradient_descent(w_matrix,  sum_sinogram, 4)
+    fig8 = plt.figure(8)    
+    plt.imshow(img4, cmap='gray')
+
+    img5 = gradient_descent(w_matrix,  sum_sinogram, 5)
+    fig9 = plt.figure(9)    
+    plt.imshow(img5, cmap='gray')
+    
+    
     plt.show()
     
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
