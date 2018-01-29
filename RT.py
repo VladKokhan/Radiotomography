@@ -7,12 +7,12 @@ from minimg import MinImg, QO_SUBPIXEL
 
 def dielecric_loss(P0, eps2rel, sigma2, parallel=True):
     f = 2.4e9 # frequency
-    omega = 2 * pi * f # circular frequency
+    omega = 2.0 * pi * f # circular frequency
     eps1 = 8.85e-12 # the first media permittivity
-    myu1 = 4 * pi * 1e-7 # nonmagnetic material permeability
-    myu2 = 4 * pi * 1e-7
-    sigma1 = 0 # the first media conductivity
-    theta_i = 0
+    myu1 = 4.0 * pi * 1e-7 # nonmagnetic material permeability
+    myu2 = 4.0 * pi * 1e-7
+    sigma1 = 0.0 # the first media conductivity
+    theta_i = 0.0
 
     eps2 = eps2rel * 8.85e-12 # the second media permittivity
     gamma1 = sqrt(1j * omega * myu1 * (sigma1 + 1j * omega * eps1)) # gamma = alpha + j * betta
@@ -44,9 +44,9 @@ def dielecric_loss(P0, eps2rel, sigma2, parallel=True):
     PR = P0 * abs(G)**2
     Pt = (P0 - PR) * exp(-2 * alpha2 * de)
     if Pt ==0:
-        Lm = 10*log10(P0)
+        Lm = 10.0*log10(P0)
     else:
-        Lm =  10*log10(P0/Pt)
+        Lm =  10.0*log10(P0/Pt)
     return(Lm.real)
 
 def element_loss(P0):
@@ -54,120 +54,113 @@ def element_loss(P0):
     l2 = dielecric_loss(P0, 2.58, 0.0217) #chipboard
     l3 = dielecric_loss(P0, 3.75, 0.038) #brick
     l4 = dielecric_loss(P0, 5,31, 0.0326) #concrete
-    l5 = dielecric_loss(P0, 1, 59.5e6) #copper
+    l5 = dielecric_loss(P0, 1.0, 59.5e6) #copper
     return(l1, l2, l3, l4, l5)
 
 def object_RT(P0, n):
-    w = 161
-    h = 161
-    obj = np.zeros((h, w), np.uint8)
+    w = 80
+    h = 80
+    obj = np.zeros((h, w), np.single)
 
     l1 = dielecric_loss(P0, 2, 0.0047, parallel=True) #wood
     l2 = dielecric_loss(P0, 2.58, 0.0217, parallel=True) #chipboard
     l3 = dielecric_loss(P0, 3.75, 0.038, parallel=True) #brick
     l4 = dielecric_loss(P0, 5.31, 0.0326, parallel=True) #concrete
-    l5 = dielecric_loss(P0, 1, 59.5e6, parallel=True) #copper
+    l5 = dielecric_loss(P0, 1.0, 59.5e6, parallel=True) #copper
 
     if n == 1:
-        cv2.rectangle(obj, (30,30), (130,130), l3, 1)
-        cv2.rectangle(obj, (31,31), (129,129), l3, 1)
-        cv2.rectangle(obj, (70,75), (90,85), l1, 1)
+        cv2.rectangle(obj, (0,0), (79,79), l3, 1)
+        cv2.rectangle(obj, (1,1), (78,78), l3, 1)
+        cv2.rectangle(obj, (29,34), (49,44), l1, 1)
     
     if n == 2:
-        cv2.circle(obj,(80,80), 50, (l3), 2)
-        cv2.rectangle(obj, (101,59), (106,64), l1, -1)
+        cv2.circle(obj,(39,39), 38, (l3), 2)
+        cv2.rectangle(obj, (21,59), (27,65), l1, -1)
 
     if n == 3:
-        cv2.rectangle(obj, (30,30), (130,130), l3, 1)
-        cv2.rectangle(obj, (31,31), (129,129), l3, 1)
-        cv2.rectangle(obj, (32,32), (128,128), l3, 1)
-        cv2.rectangle(obj, (33,33), (127,127), l3, 1)
+        cv2.rectangle(obj, (0,0), (79,79), l3, 1)
+        cv2.rectangle(obj, (1,1), (78,78), l3, 1)
+        cv2.rectangle(obj, (2,2), (77,77), l3, 1)
+        cv2.rectangle(obj, (3,3), (76,76), l3, 1)
 
-        cv2.rectangle(obj, (47,46), (47,65), l5, -1)
-        cv2.circle(obj,(44,116), 3, (l4), -1)
-        cv2.rectangle(obj, (104,99), (117,112), l1, -1)
-        cv2.rectangle(obj, (110,36), (124,55), l1, 1)
-        cv2.rectangle(obj, (116,47), (123,54), l2, -1)
+        cv2.rectangle(obj, (16,15), (16,35), l5, -1)
+        cv2.circle(obj,(13,65), 3, (l4), -1)
+        cv2.rectangle(obj, (51,46), (65,60), l1, -1)
+        cv2.rectangle(obj, (57,5), (72,25), l1, 1)
+        cv2.rectangle(obj, (63,16), (71,24), l2, -1)
 
     if n == 4:
-        cv2.rectangle(obj, (30,30), (130,130), l3, 1)
-        cv2.rectangle(obj, (31,31), (129,129), l3, 1)
-        cv2.rectangle(obj, (32,32), (128,128), l3, 1)
-        cv2.rectangle(obj, (33,33), (127,127), l3, 1)
+        cv2.rectangle(obj, (0,0), (79,79), l3, 1)
+        cv2.rectangle(obj, (1,1), (78,78), l3, 1)
 
-        cv2.rectangle(obj, (47,61), (47,70), l5, -1)
-        cv2.circle(obj,(44,116), 3, (l4), -1)
-        cv2.rectangle(obj, (80,32), (80,128), l3, -1)
-        cv2.rectangle(obj, (110,35), (124,54), l1, 1)
-        cv2.rectangle(obj, (116,47), (123,54), l2, -1)
+        cv2.rectangle(obj, (16,20), (16,40), l5, -1)
+        cv2.circle(obj,(13,65), 3, (l4), -1)
+        cv2.rectangle(obj, (39,2), (39,77), l3, -1)
+        cv2.rectangle(obj, (57,5), (72,25), l1, 1)
+        cv2.rectangle(obj, (63,16), (71,24), l2, -1)
 
     if n == 5:
-        cv2.ellipse(obj, (80,80), (75,50), 0, 0, 360, l3, 2)
-        cv2.circle(obj,(40,60), 3, (l4), -1)
-        cv2.rectangle(obj, (110,55), (124,69), l1, -1)
-        cv2.rectangle(obj, (85,85), (85,104), l5, -1)
+        cv2.ellipse(obj, (39,39), (38,30), 0, 0, 360, l3, 2)
+        cv2.circle(obj,(24,24), 3, (l4), -1)
+        cv2.rectangle(obj, (44,19), (59,34), l1, -1)
+        cv2.rectangle(obj, (44,44), (44,64), l5, -1)
     
-    if n ==6:
-        obj = np.zeros((15, 15), np.uint8)
-        cv2.circle(obj, (6,7), 2, (l5), -1)
+    if n == 6:
+        obj = np.zeros((15, 15), np.single)
+        #cv2.rectangle(obj, (110,55), (124,69), l1, -1)
+        cv2.circle(obj, (5,4), 2, (l5), -1)
+        #obj[3,3] = 1
 
     return(obj)
 
-def rt_beam(delta, h, w):
-    x1 = 0
-    y1 = 0
-    x2 = 0 
-    y2 = h
+def rot ():
+    obj = np.zeros((180, 180), np.single )
+    cv2.rectangle(obj, (40,12), (40,168), 5, -1)
+    #obj[:, 0] = 5
+    fig = plt.figure(1)    
+    plt.imshow(obj, cmap='gray')
+    plt.colorbar()
+    
+    img = MinImg.fromarray(obj)
+    img.rotate(radians(45), out=img, quality=QO_SUBPIXEL)
+    fig2 = plt.figure(2)    
+    plt.imshow(obj, cmap='gray')
+    plt.colorbar()
+    plt.show()
 
-    beam = np.zeros((h, w), np.uint8)
+def rt_beam(delta, h, w):
+    beam = np.zeros((h, w), np.single)
     
     for step in range(0, w, delta):
-        pts = np.array([[x1 + step, y1],[x2 + step, y2]], np.int32)
-        cv2.polylines(beam,[pts],True,(255))
+        beam[:, step] = 1
 
-    '''
-    beam = np.zeros((h, 3), np.uint8)
-    for step in range(0, w, delta):
-        cv2.ellipse(beam, (1, int(h/2)), (1, int(h/2)), 0, 0, 360, 255, -1)
-    '''
-    # rotation_matrix = cv2.getRotationMatrix2D((w/2, h/2), ang, 1)
-    # beam = cv2.warpAffine(beam, rotation_matrix, (w, h), flags=cv2.INTER_NEAREST)
-    #from minimg import MinImg, QO_SUBPIXEL
-    #img = MinImg.fromarray(beam)
-    #img.rotate(radians(ang), out=img, quality=QO_SUBPIXEL)
-    #print(img)
     return(beam)
 
 
-def projection(obj, delta_ang, object_number, ellips=False, delta=0):
+def projection(obj, delta_ang, ellips=False, delta=0):
     h, w = obj.shape[:2]
-    if ellips == False:
-        beam = rt_beam(1, h, w)
-        projection_matrix = np.zeros((int(180/delta_ang), w))
-        beam_vector = np.zeros(h)
-        ang = 0
-        for n in range(0, 180, delta_ang):
-            new_obj = object_RT(P0, object_number)
-            img = MinImg.fromarray(new_obj)
-            img.rotate(radians(n), out=img, quality=QO_SUBPIXEL)
+    beam = rt_beam(1, h, w)
 
-            for c in range(w):
-                for r in range(h):
-                    if beam[r, c] > 0:
-                        beam_vector[r] = new_obj[r,c]
-                projection_matrix[n, c] = np.sum(beam_vector)
+    if ellips == False:
+        projection_matrix = np.zeros((int(180/delta_ang), w), np.single)
+        for n in range(int(180/delta_ang)):
+            ang = n * delta_ang
+            new_obj = obj.copy()
+            img = MinImg.fromarray(new_obj)
+            img.rotate(radians(ang), out=img, quality=QO_SUBPIXEL)
+            projection_matrix[n, :] = np.sum((new_obj*beam), axis=0)
 
     
     elif ellips == True:
         beam_vector = np.zeros(h*3)
-        projection_matrix = np.zeros((int(180/delta_ang), w))
+        projection_matrix = np.zeros((int(180/delta_ang), w), np.single)
         beam = np.zeros((h, 3))
         cv2.ellipse(beam, (1, int(h/2)), (1, int(h/2)), 0, 0, 360, 255, -1)
         sum_beam = np.sum(beam, axis=1)
         for c in range(3):
             beam[:,c] = beam[:,c] / sum_beam
         for n in range(0, 180, delta_ang):
-            new_obj = object_RT(P0, object_number)
+            new_obj = obj.copy()
             img = MinImg.fromarray(new_obj)
             img.rotate(radians(n), out=img, quality=QO_SUBPIXEL)
 
@@ -175,11 +168,16 @@ def projection(obj, delta_ang, object_number, ellips=False, delta=0):
                 for c in range(3):
                     for r in range(h):
                         if beam[r, c] > 0:
-                            if c+step < 161:
+                            if c+step < 80:
                                 beam_vector[r + h * c] = new_obj[r,c + step] * beam[r,c]
                     
                 projection_matrix[n, step] = np.sum(beam_vector)
 
+    projection_matrix = np.append(projection_matrix, np.flip([projection_matrix[0]],1), axis=0)
+    projection_matrix = np.delete(projection_matrix, 0, 0)            
+    projection_matrix = np.flip(projection_matrix,1)
+    projection_matrix = np.flip(projection_matrix,0)
+    
     return (projection_matrix, beam)
 
 def TP_v(beam_length, P0):
@@ -198,110 +196,291 @@ def TP_v(beam_length, P0):
 
 def TP_sum(P0, sinogram, obj):
     beam_length, w = obj.shape[:2]
+    #w = sinogram.shape[1]
+    #beam_length = w
     range_loss = TP_v(beam_length, P0)
-    sum_sinorgam = sinogram + range_loss
+    sum_sinorgam = sinogram
     
-    return(sum_sinorgam)
+    return(sum_sinorgam.real)
 
-def weigthing_matrix(sinogram, obj, ellips=False):
+def weigthing_matrix(sinogram, delta_ang, ellips=False):
+    
     a, w = sinogram.shape[:2]
-    h, w = obj.shape[:2]
-    matrix_w = np.zeros((a*w , h*w))
+    #print(int((a*w * sqrt(2)).real))
+    matrix_w = np.zeros((a*w , w*w))
+    beam_len = int((w/sqrt(2)).real)
+    beam_start = int((w - beam_len)/2)
+
     if ellips == False:
-        for c in range(w):
-            for angle in range(a):
+        for c in range(beam_len):
+            angle = 0
+            for ang in range(a):
+                beam = np.zeros((w, w), np.single)
                 
-                beam = np.zeros((h, w), np.single)
-                beam[:,0 + c] = 1
+                #cv2.rectangle(beam, (beam_start+c,beam_start), (beam_start+c, beam_start+beam_len), 1, -1)
+                beam[beam_start:beam_start+beam_len, beam_start+c] = 1
                 img = MinImg.fromarray(beam)
-                img.rotate(radians(angle), out=img, quality=QO_SUBPIXEL)
-                matrix_w[(c+angle*w), :] = beam.flatten()
-        return(matrix_w)
+                img.rotate(radians(angle*delta_ang), out=img, quality=QO_SUBPIXEL)
+                matrix_w[(beam_start+c + ang*w), :] = beam.flatten()
+                angle += 1
+
+    if ellips == True:
+        for c in range(beam_len):
+            angle = 0
+            for ang in range(a):
+                beam = np.zeros((w, w), np.single)
+                ell = np.zeros((beam_len,beam_len), np.single)
+                cv2.ellipse(ell, (int(c), int(beam_len/2)), (1, int(beam_len/2)), 0, 0, 360, 1, -1)
+                sum_beam = np.sum(ell, axis=1)
+                for q in range(beam_len):
+                    ell[:,q] = ell[:,q] / sum_beam
+                beam[beam_start:beam_start+beam_len, beam_start:beam_start+beam_len] = ell[:,:] 
+                img = MinImg.fromarray(beam)
+                img.rotate(radians(angle*delta_ang), out=img, quality=QO_SUBPIXEL)
+                matrix_w[(beam_start+c + ang*w), :] = beam.flatten()
+                angle += 1
+
+
+    return(matrix_w)
+
+def grad_func(matrix_w, sinogram, x, lmbd=1, func='usial'):
+    if func == 'usial':
+        grad = 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten())
+    elif func == 'l1':
+        grad = 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten()) + lmbd * np.sign(x)
+    elif func == 'l2':
+        grad = 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten()) + lmbd * 2 * x
+    elif func == 'mix':
+        grad = 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten()) + lmbd * np.sign(x) + lmbd * 2 * x
+    return(grad)
+
+def function(matrix_w, sinogram, x , lmbd=1, func='usial'):
+    if func == 'usial':
+        f_x = sum((np.matmul(matrix_w, x.flatten()) - sinogram.flatten())**2)
+    elif func == 'l1':
+        f_x = sum((np.matmul(matrix_w, x.flatten()) - sinogram.flatten())**2) + lmbd * sum((abs(x)))
+    elif func == 'l2':
+        f_x = sum((np.matmul(matrix_w, x.flatten()) - sinogram.flatten())**2) + lmbd * sum(((x)**2))
+    elif func == 'mix':
+        f_x = sum((np.matmul(matrix_w, x.flatten()) - sinogram.flatten())**2) + lmbd * sum(((x)**2)) + lmbd * sum((abs(x)))
+    return(f_x)
 
 def gradient_descent(matrix_w, sinogram, n):
     a, w = sinogram.shape[:2]
     h = w
-    matrix_w = np.flip(matrix_w,0)
+
     x_matrix = np.zeros((h,w))
     x = x_matrix.flatten()
-    
-    grad = lambda x: 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten())
+    lmbd = 0.00001
 
     for t in range(n):
-        x = x - 1*grad(x)
-    
+        x += - lmbd * grad_func(matrix_w, sinogram, x, 2.0, func='l1')
     return(np.reshape(x, (h,w)))
 
-def steepest_gradient_descent(matrix_w, sinogram, n):
+def ternary_search(matrix_w, sinogram, x, grad, left, right, eps=1e-5, f='usial'):
+    while abs(right - left) > eps:
+        a = (left * 2.0 + right) / 3.0
+        b = (left + right * 2.0) / 3.0
+        f1 = function(matrix_w, sinogram,  x - a * grad, 2.0, func=f)
+        f2 = function(matrix_w, sinogram,  x - b * grad, 2.0, func=f)
+        if f1 < f2:
+            right = b
+        else:
+            left = a
+    return (left + right) / 2.0
+
+def steepest_gradient_descent(matrix_w, sinogram, n,f):
     a, w = sinogram.shape[:2]
     h = w
-    matrix_w = np.flip(matrix_w,0)
+
     x_matrix = np.zeros((h,w))
     x = x_matrix.flatten()
-    eps = 0.0001
-    grad = lambda x: 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten())
-    #previous_step_size = np.sum(x, axis=0)
-    lmbd = 0.1
-    #while previous_step_size > eps:
+    lmbd =  0.0    
+    #error = sqrt((np.sum(((sinogram.flatten())**2), axis=0)))/(sinogram.flatten()).shape[0]
+    #error = error.real
+    #eps = 1e-3
+    step = 1
+    descent_speed = np.zeros((n), np.single)
+    alpha = np.zeros((n), np.single)
+    #while error > eps:
     for t in range(n):
-        prev_x = x
-        x = prev_x - lmbd*grad(prev_x)
-        #previous_step_size = np.sum(abs(x - prev_x), axis=0)
-        #lmbd = np.argmin(x - lmbd * grad)
+        alpha[step-1] = lmbd
+        grad = grad_func(matrix_w, sinogram, x, 1.0, func=f)
+        x += -lmbd * grad
+        lmbd = ternary_search(matrix_w, sinogram, x, grad, 0.0, 10.0,f=f)
+        #print(lmbd)
+        error = sqrt(np.sum(((sinogram.flatten() - np.matmul(matrix_w, x.flatten()))**2), axis=0))/(sinogram.flatten()).shape[0]
+        error = error.real
+        print(step)
+        #print(error)
+        descent_speed[step-1] = error
+        step += 1
     
-    return(np.reshape(x, (h,w)))
+    return(np.reshape(x, (h,w)),descent_speed, alpha)
 
 if __name__ == "__main__":
     
+    #rot()
+    #exit()
+
     P0 = 1000
-    object_number = 6
+    object_number = 5
+
     obj = object_RT(P0, object_number)
-    #fig1 = plt.figure(1)
-    plt.imshow(obj, vmax=5, cmap='gray')
     
+    h,w= obj.shape[:2]
+
+    
+    obj_ext = np.zeros((int(w * 2), int(w * 2)), np.single)
+    obj_ext[int((w/2)):w + int(w/2), int((w/2)):w + int(w/2)] = obj[:,:]
+
+    
+    fig1 = plt.figure(1)
+    plt.imshow(obj, cmap='gray')
+    plt.colorbar()
+
+    #plt.show()
+    #exit()
+    
+    delta_ang = 1
+    '''
+    beam = rt_beam(5, h, w)
+    fig2 = plt.figure(2)
+    plt.imshow(beam, cmap='gray')
+    '''
+
     #beam = rt_beam(5, 151, 151)
     #cv2.namedWindow('image3', cv2.WINDOW_NORMAL)
     #cv2.imshow("image3", beam)
 
-    sinogram, beam = projection(obj, 1, object_number, ellips=False, delta=1)
+    sinogram, beam = projection(obj_ext, delta_ang, ellips=False, delta=1)
+
+    #sinogram = np.genfromtxt('sinogram.txt',dtype='float')
     
-    sum_sinogram = TP_sum(P0, sinogram, obj,)
+    #sum_sinogram = TP_sum(P0, sinogram, obj)
+    
+    #sum_sinogram = sinogram
+    
+    
+    
+
+    w_matrix = weigthing_matrix(sinogram, delta_ang, ellips=True)
+    
+    #fig4 = plt.figure(4)
+    #plt.imshow(w_matrix, cmap='gray')
+    '''
+    img1 = gradient_descent(w_matrix,  sum_sinogram, 10)
+    fig5 = plt.figure(5)    
+    plt.imshow(img1, cmap='gray')
+    plt.colorbar()
+    print('L2_1 =', (sqrt(sum((img1.flatten() - obj.flatten())**2))).real/(obj.flatten()).shape[0])
+    '''
+
+    a,b = sinogram.shape[:2]
+    
+    sinogram = np.matmul(w_matrix, obj_ext.flatten())
+    sinogram = np.reshape(sinogram, (a,b))
     '''
     fig2 = plt.figure(2)
-    plt.imshow(sum_sinogram, cmap='gray')
+    plt.imshow(sinogram, cmap='gray')
     plt.colorbar()
     plt.ylabel('Angle', fontsize=20)
     plt.xlabel('Receiver element', fontsize=20)
     '''
+    it = 150
 
-    w_matrix = weigthing_matrix(sinogram, obj, ellips=False)
-    '''
-    fig4 = plt.figure(4)
-    plt.imshow(w_matrix, cmap='gray')
-    '''
-    
-    img1 = gradient_descent(w_matrix,  sum_sinogram, 1)
-    fig5 = plt.figure(5)    
-    plt.imshow(img1, cmap='gray')
-
-    img2 = gradient_descent(w_matrix,  sum_sinogram, 2)
+    img2, speed_1, alpha = steepest_gradient_descent(w_matrix,  sinogram, it,f='usial')
     fig6 = plt.figure(6)    
     plt.imshow(img2, cmap='gray')
+    plt.colorbar()
 
-    img3 = gradient_descent(w_matrix,  sum_sinogram, 3)
+    obj_ct = np.zeros((h,w), np.single)
+    obj_ct[:,:] = obj_ext[int((w/2)):w + int(w/2), int((w/2)):w + int(w/2)]
+    img_2_ct = np.zeros((h,w), np.single)
+    img_2_ct[:,:] = img2[int((w/2)):w + int(w/2), int((w/2)):w + int(w/2)]
+    fig7 = plt.figure(7)    
+    plt.imshow(img_2_ct, cmap='gray')
+    plt.colorbar()
+
+    print('L2_1 =', (sqrt(sum((img2.flatten() - obj_ext.flatten())**2))).real/(obj_ext.flatten()).shape[0])
+    print('L2_2 =', (sqrt(sum((img_2_ct.flatten() - obj_ct.flatten())**2))).real/(obj_ct.flatten()).shape[0])
+    
+    '''
+    img3, speed_2, alpha = steepest_gradient_descent(w_matrix,  sinogram, it,f='l1')
+    fig7 = plt.figure(7)    
+    plt.imshow(img3, cmap='gray')
+    plt.colorbar()
+    print('L2_2 =', (sqrt(sum((img3.flatten() - obj_ext.flatten())**2))).real/(obj.flatten()).shape[0])
+    #plt.show()
+    #exit()
+    '''
+    '''
+    img4, speed_2, alpha = steepest_gradient_descent(w_matrix,  sum_sinogram, 20,f='l2')
+    fig8 = plt.figure(8)    
+    plt.imshow(img4, cmap='gray')
+    plt.colorbar()
+    print('L2_2 =', (sqrt(sum((img4.flatten() - obj.flatten())**2))).real/(obj.flatten()).shape[0])
+
+    img5, speed_2, alpha = steepest_gradient_descent(w_matrix,  sum_sinogram, 20,f='mix')
+    fig9 = plt.figure(9)    
+    plt.imshow(img5, cmap='gray')
+    plt.colorbar()
+    print('L2_2 =', (sqrt(sum((img5.flatten() - obj.flatten())**2))).real/(obj.flatten()).shape[0])
+    '''
+
+    
+    fig10 = plt.figure(10)
+    speed_arg = np.arange(it)
+    plt.plot(speed_arg, speed_1)
+    plt.xlabel('Step', fontsize=20)
+    plt.ylabel('Error', fontsize=20)
+    plt.grid(True)
+    plt.tick_params(labelsize=20)
+    plt.show()
+    exit()
+
+    fig11 = plt.figure(11)
+    plt.plot(speed_arg, speed_2)
+    plt.xlabel('Step', fontsize=20)
+    plt.ylabel('Error', fontsize=20)
+    plt.grid(True)
+    plt.tick_params(labelsize=20)
+    
+
+    '''
+    fig8 = plt.figure(8)
+    lmbd_arg_2 = np.arange(160)
+    plt.plot(lmbd_arg_2, alpha)
+    plt.xlabel('Step', fontsize=20)
+    plt.ylabel('Lambda', fontsize=20)
+    plt.grid(True)
+    plt.tick_params(labelsize=20)
+    '''
+
+    '''
+    img3 = gradient_descent(w_matrix,  sum_sinogram, 10)
     fig7 = plt.figure(7)    
     plt.imshow(img3, cmap='gray')
 
-    img4 = gradient_descent(w_matrix,  sum_sinogram, 4)
+    img4 = gradient_descent(w_matrix,  sum_sinogram, 100)
     fig8 = plt.figure(8)    
     plt.imshow(img4, cmap='gray')
-
-    img5 = gradient_descent(w_matrix,  sum_sinogram, 5)
+    
+    img5 = gradient_descent(w_matrix,  sum_sinogram, 500)
     fig9 = plt.figure(9)    
     plt.imshow(img5, cmap='gray')
     
-    
+    img6 = gradient_descent(w_matrix,  sum_sinogram, 2000)
+    fig10 = plt.figure(10)    
+    plt.imshow(img6, cmap='gray')
+    '''
+
+    '''
+    s = np.matmul(w_matrix, obj_ext.flatten())
+    h,w = sinogram.shape[:2]
+    fig20 = plt.figure(20)
+    plt.imshow(np.reshape(s, (h,w)), cmap='gray')
+    plt.colorbar()
+    print(sqrt(np.sum(((sum_sinogram.flatten() - s.flatten())**2), axis=0))/(sum_sinogram.flatten()).shape[0])
+    '''
     plt.show()
-    
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
