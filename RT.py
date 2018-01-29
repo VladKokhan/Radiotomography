@@ -4,6 +4,7 @@ from cmath import *
 from math import radians
 import matplotlib.pyplot as plt
 from minimg import MinImg, QO_SUBPIXEL
+from scipy import ndimage
 
 def dielecric_loss(P0, eps2rel, sigma2, parallel=True):
     f = 2.4e9 # frequency
@@ -252,6 +253,8 @@ def grad_func(matrix_w, sinogram, x, lmbd=1, func='usial'):
         grad = 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten()) + lmbd * 2 * x
     elif func == 'mix':
         grad = 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten()) + lmbd * np.sign(x) + lmbd * 2 * x
+    elif func == 'TV':
+        grad = 2 * np.matmul(matrix_w.T, np.matmul(matrix_w, x)-sinogram.flatten()) + lmbd * np.sign(img_grad(x))
     return(grad)
 
 def function(matrix_w, sinogram, x , lmbd=1, func='usial'):
@@ -263,7 +266,26 @@ def function(matrix_w, sinogram, x , lmbd=1, func='usial'):
         f_x = sum((np.matmul(matrix_w, x.flatten()) - sinogram.flatten())**2) + lmbd * sum(((x)**2))
     elif func == 'mix':
         f_x = sum((np.matmul(matrix_w, x.flatten()) - sinogram.flatten())**2) + lmbd * sum(((x)**2)) + lmbd * sum((abs(x)))
+    elif func == 'TV':
+        f_x = sum((np.matmul(matrix_w, x.flatten()) - sinogram.flatten())**2) + lmbd * sum((abs(img_grad(x))))
     return(f_x)
+
+def img_grad(x):
+    hh = x.shape[0]
+    h = int((sqrt(hh)).real)
+    x = np.reshape(x, (h, h))
+
+    roberts_cross_v = np.array( [[ -1, 0],[ 0, 1]] )
+    roberts_cross_h = np.array( [[ 0, -1],[ 1, 0]] )
+
+    vertical = ndimage.convolve( x, roberts_cross_v )
+    horizontal = ndimage.convolve( x, roberts_cross_h )
+
+    output = abs(horizontal) + abs(vertical)
+
+    return(output.flatten())
+
+
 
 def gradient_descent(matrix_w, sinogram, n):
     a, w = sinogram.shape[:2]
@@ -307,7 +329,7 @@ def steepest_gradient_descent(matrix_w, sinogram, n,f):
         alpha[step-1] = lmbd
         grad = grad_func(matrix_w, sinogram, x, 1.0, func=f)
         x += -lmbd * grad
-        lmbd = ternary_search(matrix_w, sinogram, x, grad, 0.0, 10.0,f=f)
+        lmbd = ternary_search(matrix_w, sinogram, x, grad, 0.0, 10.0, f=f)
         #print(lmbd)
         error = sqrt(np.sum(((sinogram.flatten() - np.matmul(matrix_w, x.flatten()))**2), axis=0))/(sinogram.flatten()).shape[0]
         error = error.real
@@ -324,7 +346,7 @@ if __name__ == "__main__":
     #exit()
 
     P0 = 1000
-    object_number = 5
+    object_number = 3
 
     obj = object_RT(P0, object_number)
     
@@ -334,6 +356,8 @@ if __name__ == "__main__":
     obj_ext = np.zeros((int(w * 2), int(w * 2)), np.single)
     obj_ext[int((w/2)):w + int(w/2), int((w/2)):w + int(w/2)] = obj[:,:]
 
+    #grad = img_grad(obj.flatten())
+
     
     fig1 = plt.figure(1)
     plt.imshow(obj, cmap='gray')
@@ -342,7 +366,7 @@ if __name__ == "__main__":
     #plt.show()
     #exit()
     
-    delta_ang = 1
+    delta_ang = 5
     '''
     beam = rt_beam(5, h, w)
     fig2 = plt.figure(2)
@@ -364,7 +388,7 @@ if __name__ == "__main__":
     
     
 
-    w_matrix = weigthing_matrix(sinogram, delta_ang, ellips=True)
+    w_matrix = weigthing_matrix(sinogram, delta_ang, ellips=False)
     
     #fig4 = plt.figure(4)
     #plt.imshow(w_matrix, cmap='gray')
@@ -387,7 +411,7 @@ if __name__ == "__main__":
     plt.ylabel('Angle', fontsize=20)
     plt.xlabel('Receiver element', fontsize=20)
     '''
-    it = 150
+    it = 10
 
     img2, speed_1, alpha = steepest_gradient_descent(w_matrix,  sinogram, it,f='usial')
     fig6 = plt.figure(6)    
@@ -405,15 +429,17 @@ if __name__ == "__main__":
     print('L2_1 =', (sqrt(sum((img2.flatten() - obj_ext.flatten())**2))).real/(obj_ext.flatten()).shape[0])
     print('L2_2 =', (sqrt(sum((img_2_ct.flatten() - obj_ct.flatten())**2))).real/(obj_ct.flatten()).shape[0])
     
-    '''
-    img3, speed_2, alpha = steepest_gradient_descent(w_matrix,  sinogram, it,f='l1')
-    fig7 = plt.figure(7)    
+    
+    img3, speed_2, alpha = steepest_gradient_descent(w_matrix,  sinogram, it,f='TV')
+    fig8 = plt.figure(8)    
     plt.imshow(img3, cmap='gray')
     plt.colorbar()
-    print('L2_2 =', (sqrt(sum((img3.flatten() - obj_ext.flatten())**2))).real/(obj.flatten()).shape[0])
+    print('L2_2 =', (sqrt(sum((img3.flatten() - obj_ext.flatten())**2))).real/(obj_ext.flatten()).shape[0])
     #plt.show()
     #exit()
-    '''
+    
+
+
     '''
     img4, speed_2, alpha = steepest_gradient_descent(w_matrix,  sum_sinogram, 20,f='l2')
     fig8 = plt.figure(8)    
@@ -455,24 +481,6 @@ if __name__ == "__main__":
     plt.ylabel('Lambda', fontsize=20)
     plt.grid(True)
     plt.tick_params(labelsize=20)
-    '''
-
-    '''
-    img3 = gradient_descent(w_matrix,  sum_sinogram, 10)
-    fig7 = plt.figure(7)    
-    plt.imshow(img3, cmap='gray')
-
-    img4 = gradient_descent(w_matrix,  sum_sinogram, 100)
-    fig8 = plt.figure(8)    
-    plt.imshow(img4, cmap='gray')
-    
-    img5 = gradient_descent(w_matrix,  sum_sinogram, 500)
-    fig9 = plt.figure(9)    
-    plt.imshow(img5, cmap='gray')
-    
-    img6 = gradient_descent(w_matrix,  sum_sinogram, 2000)
-    fig10 = plt.figure(10)    
-    plt.imshow(img6, cmap='gray')
     '''
 
     '''
